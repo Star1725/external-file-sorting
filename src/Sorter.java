@@ -2,9 +2,30 @@ import java.io.*;
 import java.util.*;
 
 public class Sorter {
-    private static int MAX_CHUNK_SIZE = 10;//максимальный размер чанка, который помещается в память
+//    private static int MAX_CHUNK_SIZE = 10000;//максимальный размер чанка, который помещается в память
+    private int maxChunkSize = 10000;//максимальный размер чанка, который помещается в память
     private static final int COUNT_THREADS = Runtime.getRuntime().availableProcessors();
 
+    public Sorter() {
+        this.maxChunkSize = determineOptimalChunkSize();
+    }
+
+    private static int determineOptimalChunkSize() {
+        // Получаем доступную память в байтах
+        long maxMemory = Runtime.getRuntime().maxMemory();  // Максимально доступная память
+        long freeMemory = Runtime.getRuntime().freeMemory(); // Свободная память
+        long allocatedMemory = Runtime.getRuntime().totalMemory(); // Уже выделенная память
+        long availableMemory = maxMemory - allocatedMemory + freeMemory; // Оставшаяся память
+
+        // Оставляем запас (например, 20%) для других процессов
+        long safeMemory = (long) (availableMemory * 0.8);
+
+        // Примерная оценка памяти, необходимой для одного long (8 байт) + накладные расходы
+        int bytesPerLong = 8 + 8; // 8 байт для long + примерно 8 байт для накладных расходов (ArrayList)
+
+        // Рассчитываем максимальное количество элементов, которое можно безопасно поместить в память
+        return (int) (safeMemory / bytesPerLong);
+    }
 
     public File sortFile(File file) throws IOException {
         //деление файла на части с параллельной сортировкой
@@ -13,7 +34,6 @@ public class Sorter {
         //параллельное слияние отсортированных частей
         return mergeSortedChunks(sortedChunks);
     }
-
 
     private List<File> splitSortedFile(File file) throws IOException {
         List<File> sortedChunks = new ArrayList<>();
@@ -24,7 +44,7 @@ public class Sorter {
                 chunk.clear();
 
                 //читаем в чанк
-                while (chunk.size() < MAX_CHUNK_SIZE && scanner.hasNextLong()){
+                while (chunk.size() < maxChunkSize && scanner.hasNextLong()){
                     chunk.add(scanner.nextLong());
                 }
 
