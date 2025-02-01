@@ -1,8 +1,5 @@
 import java.io.*;
-import java.util.ArrayList;
-import java.util.Collections;
-import java.util.List;
-import java.util.Scanner;
+import java.util.*;
 
 public class Sorter {
     private static int MAX_CHUNK_SIZE = 10;//максимальный размер чанка, который помещается в память
@@ -47,8 +44,37 @@ public class Sorter {
         return sortedChunks;
     }
 
-    private File mergeSortedChunks(List<File> sortedChunks) {
+    private File mergeSortedChunks(List<File> sortedChunks) throws FileNotFoundException {
+        //Используем приоритетную очередь для слияния.
+        //Элементы в очереди хранятся в порядке возрастания (сравнение происходит по showsFollowNumbs(), т.е. по текущему числу в файле).
+        PriorityQueue<ChunkReader> priorityQueue = new PriorityQueue<>(Comparator.comparingLong(ChunkReader::showsFollowNumbs));
+        //Добавление первого элемента из каждого файла в очередь
+        for (File sortedChunk : sortedChunks) {
+            ChunkReader reader = new ChunkReader(sortedChunk);
+            //ChunkReader будет отдавать числа по очереди.
+            if (reader.hasNextNumber()){
+                priorityQueue.add(reader);
+            }
 
-        return null;
+        }
+
+        //создаём файл для итоговой записи соединённых и отсортированных фалов
+        File outputSortedFile = new File("sorted_numbs.txt");
+        try (PrintWriter writer = new PrintWriter(new FileOutputStream(outputSortedFile))) {
+            while(!priorityQueue.isEmpty()){
+                ChunkReader chunkReader = priorityQueue.poll();//извлекаем минимальный элемент
+                long numberInChunk = chunkReader.getNextNumber();//читаем число и сдвигаемся на следующее
+                writer.println(numberInChunk);//записываем его в итоговый файл
+                if (chunkReader.hasNextNumber()){//если есть ещё элементы в файле
+                    priorityQueue.add(chunkReader);//добавляем следующий элемент в очередь
+                }
+            }
+        }
+
+        for (File sortedChunk : sortedChunks) {
+            sortedChunk.delete();
+        }
+
+        return outputSortedFile;
     }
 }
