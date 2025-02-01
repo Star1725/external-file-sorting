@@ -16,8 +16,8 @@ public class Sorter {
 
 
     private List<File> splitSortedFile(File file) throws IOException {
-
         List<File> sortedChunks = new ArrayList<>();
+
         try(Scanner scanner = new Scanner(new FileInputStream(file))){
             List<Long> chunk = new ArrayList<>();
             while(scanner.hasNextLong()){
